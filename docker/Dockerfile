@@ -5,8 +5,13 @@
 # --- Stage 1: Build ---
 FROM rust:1-bookworm AS builder
 
-# Install protoc for proto compilation
-RUN apt-get update && apt-get install -y --no-install-recommends protobuf-compiler && rm -rf /var/lib/apt/lists/*
+# Install build dependencies (protoc, C compiler, cmake for native deps like zstd-sys, rocksdb)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    protobuf-compiler \
+    cmake \
+    clang \
+    libclang-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 
