@@ -89,7 +89,7 @@ pub enum ClusterCommand {
 }
 
 /// Persistent state for a Raft node.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RaftPersistentState {
     /// Current term.
     pub current_term: u64,
@@ -97,16 +97,6 @@ pub struct RaftPersistentState {
     pub voted_for: Option<BrokerId>,
     /// The Raft log entries.
     pub log: Vec<RaftLogEntry>,
-}
-
-impl Default for RaftPersistentState {
-    fn default() -> Self {
-        Self {
-            current_term: 0,
-            voted_for: None,
-            log: Vec::new(),
-        }
-    }
 }
 
 /// Volatile state for the Raft leader.

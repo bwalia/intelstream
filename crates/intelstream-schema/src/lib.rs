@@ -42,22 +42,17 @@ pub enum SchemaFormat {
 }
 
 /// Compatibility modes for schema evolution.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum CompatibilityMode {
     /// No compatibility checking.
     None,
     /// New schema can read data written with the previous schema.
+    #[default]
     Backward,
     /// Previous schema can read data written with the new schema.
     Forward,
     /// Both backward and forward compatible.
     Full,
-}
-
-impl Default for CompatibilityMode {
-    fn default() -> Self {
-        Self::Backward
-    }
 }
 
 /// A registered schema.
@@ -131,10 +126,7 @@ impl SchemaRegistry {
         // TODO: check compatibility with previous version
 
         let schema_id = self.next_id.fetch_add(1, Ordering::SeqCst);
-        let mut versions = self
-            .subjects
-            .entry(subject.to_string())
-            .or_insert_with(Vec::new);
+        let mut versions = self.subjects.entry(subject.to_string()).or_default();
         let version = versions.len() as u32 + 1;
 
         let schema = Schema {

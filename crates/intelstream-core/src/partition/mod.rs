@@ -167,7 +167,7 @@ mod tests {
         let assignments = assign_partitions_round_robin(6, 2, &brokers).unwrap();
 
         assert_eq!(assignments.len(), 6);
-        for (_partition, replicas) in &assignments {
+        for replicas in assignments.values() {
             assert_eq!(replicas.len(), 2);
             // No duplicate brokers in a single partition's replica set
             assert_ne!(replicas[0], replicas[1]);

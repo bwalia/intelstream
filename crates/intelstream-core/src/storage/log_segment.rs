@@ -56,7 +56,7 @@ impl LogSegment {
     pub fn append(&mut self, message: &Message) -> Result<u64> {
         if self.sealed {
             return Err(crate::error::IntelStreamError::StorageIo(
-                std::io::Error::new(std::io::ErrorKind::Other, "segment is sealed"),
+                std::io::Error::other("segment is sealed"),
             ));
         }
 

@@ -127,7 +127,13 @@ jobs:
           version: "25.x"
 
       - name: Run integration tests
-        run: cargo test --test '*' --verbose
+        run: |
+          # Only run if integration test files exist
+          if find tests -name '*.rs' 2>/dev/null | grep -q .; then
+            cargo test --test '*' --verbose
+          else
+            echo "No integration test files found — skipping"
+          fi
         env:
           SKIP_PROTO_BUILD: "1"
 

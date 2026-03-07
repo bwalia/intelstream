@@ -62,17 +62,12 @@ pub struct MessageBatch {
 }
 
 /// Supported compression codecs.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Compression {
+    #[default]
     None,
     Lz4,
     Zstd,
-}
-
-impl Default for Compression {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 impl Message {
