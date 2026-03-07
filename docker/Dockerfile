@@ -3,7 +3,7 @@
 # ============================================================================
 
 # --- Stage 1: Build ---
-FROM rust:1.83-bookworm AS builder
+FROM rust:1-bookworm AS builder
 
 # Install protoc for proto compilation
 RUN apt-get update && apt-get install -y --no-install-recommends protobuf-compiler && rm -rf /var/lib/apt/lists/*
