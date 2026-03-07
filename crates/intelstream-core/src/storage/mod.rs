@@ -58,7 +58,7 @@ impl Default for StorageConfig {
     fn default() -> Self {
         Self {
             data_dir: "./data".to_string(),
-            segment_size_bytes: 1_073_741_824, // 1 GiB
+            segment_size_bytes: 1_073_741_824,  // 1 GiB
             max_message_size_bytes: 10_485_760, // 10 MiB
             default_compression: Compression::None,
             fsync_on_write: false,

@@ -158,9 +158,7 @@ mod tests {
 
     #[test]
     fn test_flat_map_expands_records() {
-        let flat_map = FlatMapOperator::new(|r: StreamRecord| {
-            vec![r.clone(), r]
-        });
+        let flat_map = FlatMapOperator::new(|r: StreamRecord| vec![r.clone(), r]);
         let record = test_record("hello");
         let result = flat_map.process(record);
         assert_eq!(result.len(), 2);

@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
 
 use crate::broker::BrokerId;
-use crate::error::{IntelStreamError, Result};
+use crate::error::Result;
 
 /// Configuration for replication behavior.
 #[derive(Debug, Clone, Serialize, Deserialize)]

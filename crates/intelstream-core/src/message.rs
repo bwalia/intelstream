@@ -103,11 +103,7 @@ impl Message {
     /// Compute the serialized size of this message in bytes.
     pub fn size_bytes(&self) -> usize {
         let key_size = self.key.as_ref().map_or(0, |k| k.len());
-        let header_size: usize = self
-            .headers
-            .iter()
-            .map(|(k, v)| k.len() + v.len())
-            .sum();
+        let header_size: usize = self.headers.iter().map(|(k, v)| k.len() + v.len()).sum();
         // id(16) + key + value + headers + timestamp(8) + schema_id(4)
         16 + key_size + self.value.len() + header_size + 8 + 4
     }

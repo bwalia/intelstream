@@ -81,8 +81,7 @@ impl LogSegment {
         self.writer
             .write_all(&(header_bytes.len() as u32).to_le_bytes())?;
         self.writer.write_all(&header_bytes)?;
-        self.writer
-            .write_all(&(data.len() as u32).to_le_bytes())?;
+        self.writer.write_all(&(data.len() as u32).to_le_bytes())?;
         self.writer.write_all(&data)?;
 
         let offset = self.next_offset;

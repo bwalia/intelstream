@@ -5,7 +5,7 @@
 
 use anyhow::Result;
 use clap::Parser;
-use tracing::{info, Level};
+use tracing::info;
 use tracing_subscriber::EnvFilter;
 
 mod config;
@@ -46,8 +46,8 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // Initialize tracing / logging
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(&cli.log_level));
+    let filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(&cli.log_level));
 
     tracing_subscriber::fmt()
         .with_env_filter(filter)

@@ -4,9 +4,7 @@
 //! Supports batching, compression, and exactly-once semantics.
 
 use std::collections::HashMap;
-use std::sync::Arc;
 
-use tokio::sync::Mutex;
 use tracing::{debug, info};
 
 use crate::error::{ClientError, Result};
@@ -24,7 +22,8 @@ pub enum Acks {
 }
 
 impl Acks {
-    fn as_i32(&self) -> i32 {
+    /// Convert to the wire protocol integer representation.
+    pub fn as_i32(&self) -> i32 {
         match self {
             Self::None => 0,
             Self::Leader => 1,
@@ -158,12 +157,7 @@ impl Producer {
     }
 
     /// Send a single message to a topic.
-    pub async fn send(
-        &self,
-        topic: &str,
-        key: &[u8],
-        value: &[u8],
-    ) -> Result<RecordMetadata> {
+    pub async fn send(&self, topic: &str, key: &[u8], value: &[u8]) -> Result<RecordMetadata> {
         let record = ProducerRecord::new(topic, value.to_vec()).with_key(key.to_vec());
         self.send_record(record).await
     }
@@ -231,7 +225,9 @@ mod tests {
         };
         let producer = Producer::with_config(config).await.unwrap();
 
-        let result = producer.send("topic", b"key", b"this is way too large").await;
+        let result = producer
+            .send("topic", b"key", b"this is way too large")
+            .await;
         assert!(result.is_err());
     }
 

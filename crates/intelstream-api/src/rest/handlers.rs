@@ -85,7 +85,7 @@ pub async fn create_topic(
     tag = "topics"
 )]
 pub async fn get_topic(
-    Path(name): Path<String>,
+    Path(_name): Path<String>,
 ) -> Result<Json<ApiResponse<TopicResponse>>, StatusCode> {
     // TODO: query broker for topic metadata
     Err(StatusCode::NOT_FOUND)
@@ -127,7 +127,7 @@ pub async fn delete_topic(Path(name): Path<String>) -> StatusCode {
 )]
 pub async fn produce_message(
     Path((name, partition)): Path<(String, u32)>,
-    Json(request): Json<ProduceRequest>,
+    Json(_request): Json<ProduceRequest>,
 ) -> Json<ApiResponse<ProduceResponse>> {
     info!(topic = %name, partition, "Producing message");
 
@@ -193,7 +193,6 @@ pub async fn get_cluster_status() -> Json<ApiResponse<ClusterStatusResponse>> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use tower::ServiceExt;
@@ -291,9 +290,7 @@ mod tests {
                     .method("POST")
                     .uri("/api/v1/topics/test-topic/partitions/0/messages")
                     .header("content-type", "application/json")
-                    .body(Body::from(
-                        r#"{"key":"k1","value":"v1","headers":{}}"#,
-                    ))
+                    .body(Body::from(r#"{"key":"k1","value":"v1","headers":{}}"#))
                     .unwrap(),
             )
             .await

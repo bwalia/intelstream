@@ -9,7 +9,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, info};
 
-use crate::error::{ClientError, Result};
+use crate::error::Result;
 use crate::ClientConfig;
 
 /// Strategy for determining the initial offset when no committed offset exists.
@@ -161,12 +161,7 @@ impl Consumer {
     }
 
     /// Commit a specific offset for a topic-partition.
-    pub async fn commit_offset(
-        &self,
-        topic: &str,
-        partition: u32,
-        offset: u64,
-    ) -> Result<()> {
+    pub async fn commit_offset(&self, topic: &str, partition: u32, offset: u64) -> Result<()> {
         debug!(
             topic,
             partition,
@@ -220,7 +215,10 @@ mod tests {
         let config = ClientConfig::new("localhost:9292");
         let consumer = Consumer::new(config, "test-group").await.unwrap();
 
-        consumer.subscribe(&["topic-a", "topic-a", "topic-b"]).await.unwrap();
+        consumer
+            .subscribe(&["topic-a", "topic-a", "topic-b"])
+            .await
+            .unwrap();
         // HashSet deduplicates, so only 2 unique topics
         assert_eq!(consumer.subscriptions().await.len(), 2);
     }

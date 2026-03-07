@@ -8,16 +8,16 @@ use super::{AgentAction, AgentContext, AlertSeverity, McpAgent};
 /// Manages automated failover when brokers become unresponsive.
 pub struct FailoverManager {
     /// Number of consecutive health check failures before triggering failover.
-    failure_threshold: u32,
+    _failure_threshold: u32,
     /// Current failure counts per broker.
-    failure_counts: std::collections::HashMap<u32, u32>,
+    _failure_counts: std::collections::HashMap<u32, u32>,
 }
 
 impl FailoverManager {
     pub fn new(failure_threshold: u32) -> Self {
         Self {
-            failure_threshold,
-            failure_counts: std::collections::HashMap::new(),
+            _failure_threshold: failure_threshold,
+            _failure_counts: std::collections::HashMap::new(),
         }
     }
 }

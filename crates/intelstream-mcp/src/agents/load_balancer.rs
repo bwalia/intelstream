@@ -19,9 +19,7 @@ impl LoadBalancer {
 
 impl Default for LoadBalancer {
     fn default() -> Self {
-        Self {
-            max_cpu_skew: 0.30,
-        }
+        Self { max_cpu_skew: 0.30 }
     }
 }
 

@@ -3,8 +3,6 @@
 //! These are stub implementations that will be connected to the broker
 //! once the protobuf codegen pipeline is fully wired up.
 
-use tracing::info;
-
 /// The IntelStream gRPC service implementation.
 /// TODO: Implement the tonic `IntelStream` trait once proto is compiled.
 pub struct IntelStreamGrpcService {

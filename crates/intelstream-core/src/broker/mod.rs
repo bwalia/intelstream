@@ -4,8 +4,7 @@
 //! participates in consensus, handles produce/consume requests, and coordinates
 //! replication.
 
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use dashmap::DashMap;
@@ -58,7 +57,10 @@ impl Broker {
         let data_dir = PathBuf::from(&config.data_dir);
         std::fs::create_dir_all(&data_dir)?;
 
-        info!("Broker {} starting at {}:{}", config.id, config.host, config.port);
+        info!(
+            "Broker {} starting at {}:{}",
+            config.id, config.host, config.port
+        );
 
         Ok(Self {
             config,
@@ -103,20 +105,15 @@ impl Broker {
     }
 
     /// Produce a message to a specific topic-partition.
-    pub fn produce(
-        &self,
-        topic: &str,
-        partition_id: u32,
-        message: Message,
-    ) -> Result<u64> {
+    pub fn produce(&self, topic: &str, partition_id: u32, message: Message) -> Result<u64> {
         let key = format!("{}-{}", topic, partition_id);
-        let mut partition = self
-            .partitions
-            .get_mut(&key)
-            .ok_or_else(|| IntelStreamError::PartitionNotFound {
-                topic: topic.to_string(),
-                partition: partition_id,
-            })?;
+        let mut partition =
+            self.partitions
+                .get_mut(&key)
+                .ok_or_else(|| IntelStreamError::PartitionNotFound {
+                    topic: topic.to_string(),
+                    partition: partition_id,
+                })?;
 
         partition.append(&message)
     }
@@ -157,6 +154,8 @@ impl Broker {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use super::*;
     use bytes::Bytes;
     use tempfile::TempDir;

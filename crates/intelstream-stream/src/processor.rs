@@ -2,7 +2,7 @@
 
 use crate::topology::StreamTopology;
 use crate::{StreamConfig, StreamRecord};
-use tracing::{debug, info};
+use tracing::info;
 
 /// The stream processor runtime.
 pub struct StreamProcessor {
@@ -60,7 +60,6 @@ impl StreamProcessor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::operators::{FilterOperator, MapOperator};
     use crate::topology::StreamBuilder;
     use crate::{StreamConfig, StreamRecord};
 

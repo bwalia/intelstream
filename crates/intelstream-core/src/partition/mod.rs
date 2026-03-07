@@ -148,8 +148,7 @@ pub fn assign_partitions_round_robin(
     for partition_id in 0..partition_count {
         let mut replicas = Vec::with_capacity(replication_factor as usize);
         for replica_index in 0..replication_factor {
-            let broker_index =
-                ((partition_id + replica_index) as usize) % broker_count;
+            let broker_index = ((partition_id + replica_index) as usize) % broker_count;
             replicas.push(broker_ids[broker_index]);
         }
         assignments.insert(partition_id, replicas);

@@ -92,10 +92,7 @@ mod tests {
             topic: "orders".to_string(),
             partition: 5,
         };
-        assert_eq!(
-            err.to_string(),
-            "Partition 5 not found in topic 'orders'"
-        );
+        assert_eq!(err.to_string(), "Partition 5 not found in topic 'orders'");
 
         let err = IntelStreamError::InvalidPartitionCount(0);
         assert_eq!(err.to_string(), "Invalid partition count: 0 (must be > 0)");
@@ -107,10 +104,7 @@ mod tests {
             required: 3,
             available: 1,
         };
-        assert_eq!(
-            err.to_string(),
-            "Insufficient replicas: need 3, have 1"
-        );
+        assert_eq!(err.to_string(), "Insufficient replicas: need 3, have 1");
 
         let err = IntelStreamError::NotLeader(2);
         assert_eq!(err.to_string(), "Not the leader for partition 2");

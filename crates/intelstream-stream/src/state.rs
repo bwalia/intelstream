@@ -1,7 +1,6 @@
 //! State store abstraction for stateful stream processing operations.
 
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Trait for key-value state stores used in stateful stream processing.
@@ -74,7 +73,10 @@ mod tests {
     #[tokio::test]
     async fn test_in_memory_put_and_get() {
         let store = InMemoryStateStore::new();
-        store.put(b"key1".to_vec(), b"value1".to_vec()).await.unwrap();
+        store
+            .put(b"key1".to_vec(), b"value1".to_vec())
+            .await
+            .unwrap();
 
         let result = store.get(b"key1").await.unwrap();
         assert_eq!(result, Some(b"value1".to_vec()));

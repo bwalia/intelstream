@@ -11,7 +11,7 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 use crate::broker::BrokerId;
 use crate::error::{IntelStreamError, Result};
@@ -133,9 +133,9 @@ pub struct RaftNode {
     /// Commit index: highest log entry known to be committed.
     commit_index: u64,
     /// Last applied: highest log entry applied to the state machine.
-    last_applied: u64,
+    _last_applied: u64,
     /// Configuration.
-    config: ConsensusConfig,
+    _config: ConsensusConfig,
 }
 
 impl RaftNode {
@@ -149,8 +149,8 @@ impl RaftNode {
             leader_state: None,
             peers,
             commit_index: 0,
-            last_applied: 0,
-            config,
+            _last_applied: 0,
+            _config: config,
         }
     }
 

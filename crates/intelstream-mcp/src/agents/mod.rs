@@ -62,7 +62,7 @@ pub struct AgentContext {
 }
 
 /// A snapshot of cluster metrics at a point in time.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MetricsSnapshot {
     /// Average produce latency in microseconds.
     pub avg_produce_latency_us: f64,

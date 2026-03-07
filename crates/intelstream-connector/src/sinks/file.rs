@@ -140,10 +140,15 @@ mod tests {
         sink.stop().await.unwrap();
 
         let contents = std::fs::read_to_string(&path).unwrap();
-        assert!(contents.contains("message-1"));
-        assert!(contents.contains("message-2"));
         let lines: Vec<&str> = contents.trim().lines().collect();
         assert_eq!(lines.len(), 2);
+
+        // Each line is a JSON-serialized ConnectorRecord; verify deserialization
+        let record1: ConnectorRecord = serde_json::from_str(lines[0]).unwrap();
+        let record2: ConnectorRecord = serde_json::from_str(lines[1]).unwrap();
+        assert_eq!(record1.value, b"message-1");
+        assert_eq!(record2.value, b"message-2");
+        assert_eq!(record1.topic, "test");
     }
 
     #[tokio::test]

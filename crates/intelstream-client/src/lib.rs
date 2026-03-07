@@ -117,8 +117,7 @@ mod tests {
 
     #[test]
     fn test_client_config_serialization() {
-        let config = ClientConfig::new("localhost:9292")
-            .with_client_id("test-id");
+        let config = ClientConfig::new("localhost:9292").with_client_id("test-id");
 
         let json = serde_json::to_string(&config).unwrap();
         assert!(json.contains("localhost:9292"));

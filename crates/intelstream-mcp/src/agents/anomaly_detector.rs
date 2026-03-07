@@ -173,7 +173,9 @@ mod tests {
         context.metrics.broker_cpu_utilization = vec![0.5, 0.9, 0.6];
         let actions = detector.evaluate(&context).await;
         assert!(!actions.is_empty());
-        assert!(actions.iter().any(|a| a.description.contains("CPU utilization")));
+        assert!(actions
+            .iter()
+            .any(|a| a.description.contains("CPU utilization")));
     }
 
     #[tokio::test]
@@ -182,7 +184,9 @@ mod tests {
         let mut context = default_context();
         context.metrics.broker_disk_utilization = vec![0.5, 0.95];
         let actions = detector.evaluate(&context).await;
-        assert!(actions.iter().any(|a| a.severity == AlertSeverity::Critical));
+        assert!(actions
+            .iter()
+            .any(|a| a.severity == AlertSeverity::Critical));
     }
 
     #[tokio::test]
@@ -191,7 +195,9 @@ mod tests {
         let mut context = default_context();
         context.total_consumer_lag = 500_000;
         let actions = detector.evaluate(&context).await;
-        assert!(actions.iter().any(|a| a.description.contains("consumer lag")));
+        assert!(actions
+            .iter()
+            .any(|a| a.description.contains("consumer lag")));
     }
 
     #[tokio::test]

@@ -52,9 +52,15 @@ impl Default for ReplicationSection {
     }
 }
 
-fn default_replication_factor() -> u32 { 3 }
-fn default_min_isr() -> u32 { 2 }
-fn default_replication_timeout() -> u64 { 30_000 }
+fn default_replication_factor() -> u32 {
+    3
+}
+fn default_min_isr() -> u32 {
+    2
+}
+fn default_replication_timeout() -> u64 {
+    30_000
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RetentionSection {
@@ -79,9 +85,15 @@ impl Default for RetentionSection {
     }
 }
 
-fn default_retention_hours() -> u64 { 168 }
-fn default_retention_bytes() -> i64 { -1 }
-fn default_compaction_interval() -> u64 { 300_000 }
+fn default_retention_hours() -> u64 {
+    168
+}
+fn default_retention_bytes() -> i64 {
+    -1
+}
+fn default_compaction_interval() -> u64 {
+    300_000
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PerformanceSection {
@@ -109,11 +121,21 @@ impl Default for PerformanceSection {
     }
 }
 
-fn default_io_threads() -> u32 { 4 }
-fn default_network_threads() -> u32 { 4 }
-fn default_batch_size() -> u64 { 65_536 }
-fn default_linger() -> u64 { 5 }
-fn default_compression() -> String { "zstd".to_string() }
+fn default_io_threads() -> u32 {
+    4
+}
+fn default_network_threads() -> u32 {
+    4
+}
+fn default_batch_size() -> u64 {
+    65_536
+}
+fn default_linger() -> u64 {
+    5
+}
+fn default_compression() -> String {
+    "zstd".to_string()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiSection {
@@ -137,8 +159,12 @@ pub struct CorsSection {
     pub max_age_secs: u64,
 }
 
-fn default_cors_max_age() -> u64 { 3600 }
-fn default_max_request_size() -> u64 { 52_428_800 }
+fn default_cors_max_age() -> u64 {
+    3600
+}
+fn default_max_request_size() -> u64 {
+    52_428_800
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthSection {
@@ -160,9 +186,15 @@ pub struct RbacSection {
     pub default_role: String,
 }
 
-fn default_auth_provider() -> String { "jwt".to_string() }
-fn default_token_expiry() -> u64 { 3600 }
-fn default_role() -> String { "reader".to_string() }
+fn default_auth_provider() -> String {
+    "jwt".to_string()
+}
+fn default_token_expiry() -> u64 {
+    3600
+}
+fn default_role() -> String {
+    "reader".to_string()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TlsSection {
@@ -188,8 +220,12 @@ pub struct SchemaRegistrySection {
     pub compatibility: String,
 }
 
-fn default_schema_port() -> u16 { 8081 }
-fn default_compatibility() -> String { "backward".to_string() }
+fn default_schema_port() -> u16 {
+    8081
+}
+fn default_compatibility() -> String {
+    "backward".to_string()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpSection {
@@ -205,8 +241,12 @@ pub struct McpSection {
     pub anomaly_detection_enabled: bool,
 }
 
-fn default_mcp_port() -> u16 { 8090 }
-fn default_ai_model() -> String { "local".to_string() }
+fn default_mcp_port() -> u16 {
+    8090
+}
+fn default_ai_model() -> String {
+    "local".to_string()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetricsSection {
@@ -218,8 +258,12 @@ pub struct MetricsSection {
     pub export_interval_secs: u64,
 }
 
-fn default_prometheus_port() -> u16 { 9191 }
-fn default_export_interval() -> u64 { 15 }
+fn default_prometheus_port() -> u16 {
+    9191
+}
+fn default_export_interval() -> u64 {
+    15
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoggingSection {
@@ -231,9 +275,15 @@ pub struct LoggingSection {
     pub file: String,
 }
 
-fn default_log_level() -> String { "info".to_string() }
-fn default_log_format() -> String { "json".to_string() }
-fn default_true() -> bool { true }
+fn default_log_level() -> String {
+    "info".to_string()
+}
+fn default_log_format() -> String {
+    "json".to_string()
+}
+fn default_true() -> bool {
+    true
+}
 
 impl ServerConfig {
     /// Load configuration from a TOML file.
@@ -246,9 +296,10 @@ impl ServerConfig {
     }
 
     /// Parse configuration from a TOML string (useful for testing).
+    #[cfg(test)]
     pub fn from_str(content: &str) -> Result<Self> {
-        let config: ServerConfig = toml::from_str(content)
-            .with_context(|| "Failed to parse config string".to_string())?;
+        let config: ServerConfig =
+            toml::from_str(content).with_context(|| "Failed to parse config string".to_string())?;
         Ok(config)
     }
 }

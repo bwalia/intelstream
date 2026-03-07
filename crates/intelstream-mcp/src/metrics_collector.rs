@@ -25,7 +25,7 @@ pub struct MetricsCollector {
     /// Maximum number of samples to retain.
     max_samples: usize,
     /// Per-broker latest metrics.
-    broker_metrics: DashMap<u32, MetricsSnapshot>,
+    _broker_metrics: DashMap<u32, MetricsSnapshot>,
 }
 
 impl MetricsCollector {
@@ -34,7 +34,7 @@ impl MetricsCollector {
         Self {
             samples: Arc::new(RwLock::new(VecDeque::with_capacity(max_samples))),
             max_samples,
-            broker_metrics: DashMap::new(),
+            _broker_metrics: DashMap::new(),
         }
     }
 
@@ -60,11 +60,7 @@ impl MetricsCollector {
     }
 
     /// Get all samples within a time range.
-    pub async fn range(
-        &self,
-        from: DateTime<Utc>,
-        to: DateTime<Utc>,
-    ) -> Vec<MetricsSample> {
+    pub async fn range(&self, from: DateTime<Utc>, to: DateTime<Utc>) -> Vec<MetricsSample> {
         let samples = self.samples.read().await;
         samples
             .iter()
@@ -134,10 +130,12 @@ mod tests {
         let now = chrono::Utc::now();
 
         for i in 0..5 {
-            collector.record(MetricsSnapshot {
-                messages_per_second: i as f64,
-                ..Default::default()
-            }).await;
+            collector
+                .record(MetricsSnapshot {
+                    messages_per_second: i as f64,
+                    ..Default::default()
+                })
+                .await;
         }
 
         let from = now - chrono::Duration::seconds(10);

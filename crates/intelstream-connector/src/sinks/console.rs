@@ -42,10 +42,7 @@ impl SinkConnector for ConsoleSink {
                 .map(|k| String::from_utf8_lossy(k).to_string())
                 .unwrap_or_else(|| "null".to_string());
             let value = String::from_utf8_lossy(&record.value);
-            println!(
-                "[{}] key={} value={}",
-                record.topic, key, value
-            );
+            println!("[{}] key={} value={}", record.topic, key, value);
             self.records_written += 1;
         }
         Ok(())
@@ -103,12 +100,9 @@ mod tests {
         sink.start(&test_config()).await.unwrap();
         assert_eq!(sink.name(), "test-console");
 
-        sink.put(vec![
-            test_record("k1", "v1"),
-            test_record("k2", "v2"),
-        ])
-        .await
-        .unwrap();
+        sink.put(vec![test_record("k1", "v1"), test_record("k2", "v2")])
+            .await
+            .unwrap();
 
         sink.flush().await.unwrap();
         sink.stop().await.unwrap();

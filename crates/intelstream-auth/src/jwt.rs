@@ -64,11 +64,12 @@ impl JwtManager {
         let mut validation = Validation::default();
         validation.set_issuer(&[&self.issuer]);
 
-        let token_data = decode::<Claims>(token, &self.decoding_key, &validation)
-            .map_err(|e| match e.kind() {
+        let token_data = decode::<Claims>(token, &self.decoding_key, &validation).map_err(|e| {
+            match e.kind() {
                 jsonwebtoken::errors::ErrorKind::ExpiredSignature => AuthError::TokenExpired,
                 _ => AuthError::InvalidToken(e.to_string()),
-            })?;
+            }
+        })?;
 
         let claims = token_data.claims;
         debug!(subject = %claims.sub, "Token validated");
@@ -78,8 +79,7 @@ impl JwtManager {
             name: claims.name,
             roles: claims.roles,
             expires_at: Some(
-                chrono::DateTime::from_timestamp(claims.exp, 0)
-                    .unwrap_or_else(Utc::now),
+                chrono::DateTime::from_timestamp(claims.exp, 0).unwrap_or_else(Utc::now),
             ),
         })
     }
@@ -121,7 +121,11 @@ mod tests {
         let identity = Identity {
             subject: "multi-role-user".to_string(),
             name: "Multi Role".to_string(),
-            roles: vec!["admin".to_string(), "writer".to_string(), "reader".to_string()],
+            roles: vec![
+                "admin".to_string(),
+                "writer".to_string(),
+                "reader".to_string(),
+            ],
             expires_at: None,
         };
 
@@ -152,18 +156,30 @@ mod tests {
 
     #[test]
     fn test_expired_token_rejected() {
-        // Create a manager with 0-second expiry
-        let manager = JwtManager::new("test-secret-key-at-least-32-bytes!", 0);
+        use jsonwebtoken::{encode, EncodingKey, Header};
 
-        let identity = Identity {
-            subject: "user".to_string(),
+        let secret = "test-secret-key-at-least-32-bytes!";
+        let manager = JwtManager::new(secret, 3600);
+
+        // Manually create a token with an expiry 120 seconds in the past
+        // (beyond the default 60s leeway)
+        let now = chrono::Utc::now();
+        let claims = Claims {
+            sub: "user".to_string(),
             name: "User".to_string(),
             roles: vec!["reader".to_string()],
-            expires_at: None,
+            iat: (now - chrono::Duration::seconds(300)).timestamp(),
+            exp: (now - chrono::Duration::seconds(120)).timestamp(),
+            iss: "intelstream".to_string(),
         };
 
-        let token = manager.generate_token(&identity).unwrap();
-        // Token with 0s expiry should be expired immediately
+        let token = encode(
+            &Header::default(),
+            &claims,
+            &EncodingKey::from_secret(secret.as_bytes()),
+        )
+        .unwrap();
+
         let result = manager.validate_token(&token);
         assert!(result.is_err());
     }
@@ -188,6 +204,10 @@ mod tests {
         let now = chrono::Utc::now();
         let diff = (expires - now).num_seconds();
         // Allow 10 seconds of tolerance
-        assert!(diff > 7100 && diff <= 7200, "Expected ~7200s, got {}s", diff);
+        assert!(
+            diff > 7100 && diff <= 7200,
+            "Expected ~7200s, got {}s",
+            diff
+        );
     }
 }

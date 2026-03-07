@@ -4,14 +4,13 @@
 //! Supports Avro, JSON Schema, and Protobuf schema formats.
 //! Ensures backward/forward compatibility between schema versions.
 
-use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use chrono::{DateTime, Utc};
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tracing::{info, warn};
+use tracing::info;
 
 /// Errors from the schema registry.
 #[derive(Error, Debug)]
@@ -132,7 +131,10 @@ impl SchemaRegistry {
         // TODO: check compatibility with previous version
 
         let schema_id = self.next_id.fetch_add(1, Ordering::SeqCst);
-        let mut versions = self.subjects.entry(subject.to_string()).or_insert_with(Vec::new);
+        let mut versions = self
+            .subjects
+            .entry(subject.to_string())
+            .or_insert_with(Vec::new);
         let version = versions.len() as u32 + 1;
 
         let schema = Schema {
@@ -147,12 +149,7 @@ impl SchemaRegistry {
         versions.push(schema_id);
         self.schemas_by_id.insert(schema_id, schema.clone());
 
-        info!(
-            subject,
-            version,
-            schema_id,
-            "Registered new schema"
-        );
+        info!(subject, version, schema_id, "Registered new schema");
 
         Ok(schema)
     }
@@ -289,9 +286,15 @@ mod tests {
     fn test_list_subjects() {
         let registry = SchemaRegistry::default();
 
-        registry.register("orders-value", SchemaFormat::Avro, "v1".to_string()).unwrap();
-        registry.register("payments-value", SchemaFormat::Json, "v1".to_string()).unwrap();
-        registry.register("users-key", SchemaFormat::Protobuf, "v1".to_string()).unwrap();
+        registry
+            .register("orders-value", SchemaFormat::Avro, "v1".to_string())
+            .unwrap();
+        registry
+            .register("payments-value", SchemaFormat::Json, "v1".to_string())
+            .unwrap();
+        registry
+            .register("users-key", SchemaFormat::Protobuf, "v1".to_string())
+            .unwrap();
 
         let subjects = registry.list_subjects();
         assert_eq!(subjects.len(), 3);
@@ -304,9 +307,15 @@ mod tests {
     fn test_get_version_specific() {
         let registry = SchemaRegistry::default();
 
-        registry.register("test", SchemaFormat::Json, "schema-v1".to_string()).unwrap();
-        registry.register("test", SchemaFormat::Json, "schema-v2".to_string()).unwrap();
-        registry.register("test", SchemaFormat::Json, "schema-v3".to_string()).unwrap();
+        registry
+            .register("test", SchemaFormat::Json, "schema-v1".to_string())
+            .unwrap();
+        registry
+            .register("test", SchemaFormat::Json, "schema-v2".to_string())
+            .unwrap();
+        registry
+            .register("test", SchemaFormat::Json, "schema-v3".to_string())
+            .unwrap();
 
         let v1 = registry.get_version("test", 1).unwrap();
         assert_eq!(v1.definition, "schema-v1");
@@ -325,9 +334,15 @@ mod tests {
     fn test_schema_ids_are_unique() {
         let registry = SchemaRegistry::default();
 
-        let s1 = registry.register("a", SchemaFormat::Avro, "a-v1".to_string()).unwrap();
-        let s2 = registry.register("b", SchemaFormat::Json, "b-v1".to_string()).unwrap();
-        let s3 = registry.register("a", SchemaFormat::Avro, "a-v2".to_string()).unwrap();
+        let s1 = registry
+            .register("a", SchemaFormat::Avro, "a-v1".to_string())
+            .unwrap();
+        let s2 = registry
+            .register("b", SchemaFormat::Json, "b-v1".to_string())
+            .unwrap();
+        let s3 = registry
+            .register("a", SchemaFormat::Avro, "a-v2".to_string())
+            .unwrap();
 
         assert_ne!(s1.id, s2.id);
         assert_ne!(s2.id, s3.id);
@@ -338,7 +353,9 @@ mod tests {
     fn test_get_by_id() {
         let registry = SchemaRegistry::default();
 
-        let schema = registry.register("test", SchemaFormat::Json, "def".to_string()).unwrap();
+        let schema = registry
+            .register("test", SchemaFormat::Json, "def".to_string())
+            .unwrap();
         let retrieved = registry.get_by_id(schema.id).unwrap();
         assert_eq!(retrieved.subject, "test");
         assert_eq!(retrieved.definition, "def");
@@ -352,14 +369,23 @@ mod tests {
         let registry = SchemaRegistry::default();
 
         // Default compatibility
-        assert_eq!(registry.get_compatibility("any-subject"), CompatibilityMode::Backward);
+        assert_eq!(
+            registry.get_compatibility("any-subject"),
+            CompatibilityMode::Backward
+        );
 
         // Override for a specific subject
         registry.set_compatibility("orders-value", CompatibilityMode::Full);
-        assert_eq!(registry.get_compatibility("orders-value"), CompatibilityMode::Full);
+        assert_eq!(
+            registry.get_compatibility("orders-value"),
+            CompatibilityMode::Full
+        );
 
         // Other subjects still use default
-        assert_eq!(registry.get_compatibility("other"), CompatibilityMode::Backward);
+        assert_eq!(
+            registry.get_compatibility("other"),
+            CompatibilityMode::Backward
+        );
     }
 
     #[test]
@@ -397,6 +423,9 @@ mod tests {
             default_compatibility: CompatibilityMode::None,
         };
         let registry = SchemaRegistry::new(config);
-        assert_eq!(registry.get_compatibility("anything"), CompatibilityMode::None);
+        assert_eq!(
+            registry.get_compatibility("anything"),
+            CompatibilityMode::None
+        );
     }
 }

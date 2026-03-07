@@ -1,6 +1,6 @@
 //! Role-Based Access Control (RBAC) for IntelStream resources.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
@@ -62,7 +62,7 @@ pub struct RbacEngine {
     /// Defined roles.
     roles: DashMap<String, Role>,
     /// Default role assigned to new users.
-    default_role: String,
+    _default_role: String,
 }
 
 impl RbacEngine {
@@ -70,7 +70,7 @@ impl RbacEngine {
     pub fn new(default_role: &str) -> Self {
         let engine = Self {
             roles: DashMap::new(),
-            default_role: default_role.to_string(),
+            _default_role: default_role.to_string(),
         };
 
         // Register built-in roles
@@ -165,9 +165,7 @@ impl RbacEngine {
         match (pattern, target) {
             (Resource::Cluster, _) => true, // Cluster grants apply everywhere
             (Resource::Topic(p), Resource::Topic(t)) => p == t,
-            (Resource::TopicPrefix(prefix), Resource::Topic(topic)) => {
-                topic.starts_with(prefix)
-            }
+            (Resource::TopicPrefix(prefix), Resource::Topic(topic)) => topic.starts_with(prefix),
             (Resource::Group(p), Resource::Group(t)) => p == t,
             (Resource::Schema(p), Resource::Schema(t)) => p == t,
             _ => false,
@@ -203,7 +201,11 @@ mod tests {
         let identity = admin_identity();
 
         assert!(engine
-            .authorize(&identity, &Resource::Topic("orders".to_string()), Permission::Write)
+            .authorize(
+                &identity,
+                &Resource::Topic("orders".to_string()),
+                Permission::Write
+            )
             .is_ok());
         assert!(engine
             .authorize(&identity, &Resource::Cluster, Permission::Admin)
@@ -216,10 +218,18 @@ mod tests {
         let identity = reader_identity();
 
         assert!(engine
-            .authorize(&identity, &Resource::Topic("orders".to_string()), Permission::Read)
+            .authorize(
+                &identity,
+                &Resource::Topic("orders".to_string()),
+                Permission::Read
+            )
             .is_ok());
         assert!(engine
-            .authorize(&identity, &Resource::Topic("orders".to_string()), Permission::Write)
+            .authorize(
+                &identity,
+                &Resource::Topic("orders".to_string()),
+                Permission::Write
+            )
             .is_err());
     }
 
@@ -249,20 +259,40 @@ mod tests {
         };
 
         assert!(engine
-            .authorize(&identity, &Resource::Topic("orders".to_string()), Permission::Read)
+            .authorize(
+                &identity,
+                &Resource::Topic("orders".to_string()),
+                Permission::Read
+            )
             .is_ok());
         assert!(engine
-            .authorize(&identity, &Resource::Topic("orders".to_string()), Permission::Write)
+            .authorize(
+                &identity,
+                &Resource::Topic("orders".to_string()),
+                Permission::Write
+            )
             .is_ok());
         assert!(engine
-            .authorize(&identity, &Resource::Topic("orders".to_string()), Permission::Describe)
+            .authorize(
+                &identity,
+                &Resource::Topic("orders".to_string()),
+                Permission::Describe
+            )
             .is_ok());
         // Writer cannot create or delete
         assert!(engine
-            .authorize(&identity, &Resource::Topic("orders".to_string()), Permission::Create)
+            .authorize(
+                &identity,
+                &Resource::Topic("orders".to_string()),
+                Permission::Create
+            )
             .is_err());
         assert!(engine
-            .authorize(&identity, &Resource::Topic("orders".to_string()), Permission::Delete)
+            .authorize(
+                &identity,
+                &Resource::Topic("orders".to_string()),
+                Permission::Delete
+            )
             .is_err());
     }
 
@@ -288,15 +318,27 @@ mod tests {
 
         // Matches prefix
         assert!(engine
-            .authorize(&identity, &Resource::Topic("orders-events".to_string()), Permission::Read)
+            .authorize(
+                &identity,
+                &Resource::Topic("orders-events".to_string()),
+                Permission::Read
+            )
             .is_ok());
         assert!(engine
-            .authorize(&identity, &Resource::Topic("orders-events".to_string()), Permission::Write)
+            .authorize(
+                &identity,
+                &Resource::Topic("orders-events".to_string()),
+                Permission::Write
+            )
             .is_ok());
 
         // Does not match prefix
         assert!(engine
-            .authorize(&identity, &Resource::Topic("payments".to_string()), Permission::Read)
+            .authorize(
+                &identity,
+                &Resource::Topic("payments".to_string()),
+                Permission::Read
+            )
             .is_err());
     }
 
@@ -312,10 +354,18 @@ mod tests {
 
         // Reader role allows Read, writer role allows Write
         assert!(engine
-            .authorize(&identity, &Resource::Topic("t".to_string()), Permission::Read)
+            .authorize(
+                &identity,
+                &Resource::Topic("t".to_string()),
+                Permission::Read
+            )
             .is_ok());
         assert!(engine
-            .authorize(&identity, &Resource::Topic("t".to_string()), Permission::Write)
+            .authorize(
+                &identity,
+                &Resource::Topic("t".to_string()),
+                Permission::Write
+            )
             .is_ok());
     }
 
@@ -340,10 +390,18 @@ mod tests {
         };
 
         assert!(engine
-            .authorize(&identity, &Resource::Topic("my-topic".to_string()), Permission::Read)
+            .authorize(
+                &identity,
+                &Resource::Topic("my-topic".to_string()),
+                Permission::Read
+            )
             .is_ok());
         assert!(engine
-            .authorize(&identity, &Resource::Topic("other-topic".to_string()), Permission::Read)
+            .authorize(
+                &identity,
+                &Resource::Topic("other-topic".to_string()),
+                Permission::Read
+            )
             .is_err());
     }
 
@@ -361,6 +419,10 @@ mod tests {
             .authorize(&identity, &Resource::Cluster, Permission::Admin)
             .unwrap_err();
         let msg = err.to_string();
-        assert!(msg.contains("Admin"), "Error should mention the permission: {}", msg);
+        assert!(
+            msg.contains("Admin"),
+            "Error should mention the permission: {}",
+            msg
+        );
     }
 }

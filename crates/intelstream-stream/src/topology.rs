@@ -2,7 +2,6 @@
 
 use crate::operators::Operator;
 use crate::StreamRecord;
-use serde::{Deserialize, Serialize};
 
 /// A complete stream processing topology.
 #[derive(Debug)]

@@ -31,12 +31,7 @@ impl CommitLog {
         // Scan for existing segment files
         let mut segment_offsets: Vec<u64> = std::fs::read_dir(dir)?
             .filter_map(|entry| entry.ok())
-            .filter(|entry| {
-                entry
-                    .path()
-                    .extension()
-                    .map_or(false, |ext| ext == "log")
-            })
+            .filter(|entry| entry.path().extension().map_or(false, |ext| ext == "log"))
             .filter_map(|entry| {
                 entry
                     .path()
@@ -49,8 +44,7 @@ impl CommitLog {
         segment_offsets.sort();
 
         for base_offset in segment_offsets {
-            let segment =
-                LogSegment::open(dir, base_offset, config.segment_size_bytes)?;
+            let segment = LogSegment::open(dir, base_offset, config.segment_size_bytes)?;
             segments.push(segment);
         }
 
@@ -106,8 +100,7 @@ impl CommitLog {
             next_offset
         );
 
-        let new_segment =
-            LogSegment::open(&self.dir, next_offset, self.config.segment_size_bytes)?;
+        let new_segment = LogSegment::open(&self.dir, next_offset, self.config.segment_size_bytes)?;
         self.segments.push(new_segment);
 
         Ok(())
@@ -140,9 +133,7 @@ impl CommitLog {
 
     /// The earliest available offset in the log.
     pub fn start_offset(&self) -> u64 {
-        self.segments
-            .first()
-            .map_or(0, |s| s.base_offset())
+        self.segments.first().map_or(0, |s| s.base_offset())
     }
 
     /// The next offset that will be assigned (end of log).
@@ -162,12 +153,16 @@ impl CommitLog {
 
     /// Reference to the active (latest) segment.
     fn active_segment(&self) -> &LogSegment {
-        self.segments.last().expect("commit log must have at least one segment")
+        self.segments
+            .last()
+            .expect("commit log must have at least one segment")
     }
 
     /// Mutable reference to the active (latest) segment.
     fn active_segment_mut(&mut self) -> &mut LogSegment {
-        self.segments.last_mut().expect("commit log must have at least one segment")
+        self.segments
+            .last_mut()
+            .expect("commit log must have at least one segment")
     }
 }
 
@@ -205,10 +200,12 @@ mod tests {
             max_message_size_bytes: 10,
             ..test_config()
         };
-        let mut log =
-            CommitLog::open(tmp.path(), config, RetentionPolicy::default()).unwrap();
+        let mut log = CommitLog::open(tmp.path(), config, RetentionPolicy::default()).unwrap();
 
-        let msg = Message::new(None, Bytes::from("this message is way too large for the limit"));
+        let msg = Message::new(
+            None,
+            Bytes::from("this message is way too large for the limit"),
+        );
         assert!(log.append(&msg).is_err());
     }
 }

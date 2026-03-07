@@ -227,9 +227,7 @@ async fn main() -> Result<()> {
             group,
             from_beginning,
             max_messages,
-        } => {
-            handle_consume(&cli.broker, &topic, &group, from_beginning, max_messages).await?
-        }
+        } => handle_consume(&cli.broker, &topic, &group, from_beginning, max_messages).await?,
         Commands::Cluster { action } => handle_cluster(action, &cli.broker).await?,
         Commands::Mcp { action } => handle_mcp(action, &cli.broker).await?,
         Commands::Schema { action } => handle_schema(action, &cli.broker).await?,
@@ -289,7 +287,7 @@ async fn handle_produce(
     broker: &str,
     topic: &str,
     key: Option<&str>,
-    value: &str,
+    _value: &str,
     partition: Option<u32>,
 ) -> Result<()> {
     println!(
@@ -313,7 +311,7 @@ async fn handle_consume(
     topic: &str,
     group: &str,
     from_beginning: bool,
-    max_messages: Option<u32>,
+    _max_messages: Option<u32>,
 ) -> Result<()> {
     println!(
         "{} from topic '{}' (group={}, from_beginning={})",
@@ -323,7 +321,10 @@ async fn handle_consume(
         from_beginning
     );
     // TODO: create consumer and poll messages via client SDK
-    println!("  (no messages — connect to broker at {} to consume)", broker);
+    println!(
+        "  (no messages — connect to broker at {} to consume)",
+        broker
+    );
     Ok(())
 }
 
@@ -397,7 +398,11 @@ async fn handle_schema(action: SchemaAction, _broker: &str) -> Result<()> {
 async fn handle_connector(action: ConnectorAction, _broker: &str) -> Result<()> {
     match action {
         ConnectorAction::Create { config } => {
-            println!("{} connector from config: {}", "Creating".green().bold(), config);
+            println!(
+                "{} connector from config: {}",
+                "Creating".green().bold(),
+                config
+            );
             // TODO: read config and POST to connector API
         }
         ConnectorAction::List => {

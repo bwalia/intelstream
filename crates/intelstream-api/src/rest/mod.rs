@@ -6,7 +6,7 @@ pub mod handlers;
 pub mod models;
 
 use axum::{
-    routing::{delete, get, post, put},
+    routing::{delete, get, post},
     Router,
 };
 use utoipa::OpenApi;
@@ -54,15 +54,15 @@ pub fn build_router() -> Router {
         // Topics
         .route("/topics", get(handlers::list_topics))
         .route("/topics", post(handlers::create_topic))
-        .route("/topics/{name}", get(handlers::get_topic))
-        .route("/topics/{name}", delete(handlers::delete_topic))
+        .route("/topics/:name", get(handlers::get_topic))
+        .route("/topics/:name", delete(handlers::delete_topic))
         // Messages
         .route(
-            "/topics/{name}/partitions/{partition}/messages",
+            "/topics/:name/partitions/:partition/messages",
             post(handlers::produce_message),
         )
         .route(
-            "/topics/{name}/partitions/{partition}/messages",
+            "/topics/:name/partitions/:partition/messages",
             get(handlers::consume_messages),
         )
         // Cluster
