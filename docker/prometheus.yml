@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "intelstream"
+    static_configs:
+      - targets:
+          - "broker-1:9191"
+          - "broker-2:9191"
+          - "broker-3:9191"
+        labels:
+          cluster: "intelstream-default"

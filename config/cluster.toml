@@ -1,0 +1,53 @@
+# IntelStream Cluster Configuration
+# Used for multi-broker and multi-region deployments
+
+[cluster]
+name = "intelstream-default"
+bootstrap_servers = ["127.0.0.1:9292"]
+
+[cluster.region]
+name = "us-east-1"
+datacenter = "dc1"
+
+# Peer brokers in this cluster
+[[cluster.peers]]
+id = 1
+host = "broker-1"
+port = 9292
+region = "us-east-1"
+
+[[cluster.peers]]
+id = 2
+host = "broker-2"
+port = 9292
+region = "us-east-1"
+
+[[cluster.peers]]
+id = 3
+host = "broker-3"
+port = 9292
+region = "us-east-1"
+
+# Multi-region replication targets
+[[cluster.remote_regions]]
+name = "us-west-2"
+bootstrap_servers = ["broker-west-1:9292", "broker-west-2:9292"]
+replication_mode = "async"            # sync | async
+max_lag_ms = 5000
+
+[[cluster.remote_regions]]
+name = "eu-west-1"
+bootstrap_servers = ["broker-eu-1:9292", "broker-eu-2:9292"]
+replication_mode = "async"
+max_lag_ms = 10000
+
+# Data locality policies
+[[cluster.locality_policies]]
+topic_pattern = "orders.*"
+preferred_region = "us-east-1"
+replicate_to = ["us-west-2"]
+
+[[cluster.locality_policies]]
+topic_pattern = "eu-*"
+preferred_region = "eu-west-1"
+replicate_to = ["us-east-1"]

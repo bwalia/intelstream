@@ -1,0 +1,159 @@
+# ============================================================================
+# IntelStream HA Multi-Broker Cluster — Docker Compose
+# ============================================================================
+#
+# Usage:
+#   docker compose up -d          # Start 3-broker cluster
+#   docker compose logs -f        # Follow logs
+#   docker compose down -v        # Stop and remove volumes
+#
+
+services:
+  # --------------------------------------------------------------------------
+  # Broker 1 (also serves as bootstrap)
+  # --------------------------------------------------------------------------
+  broker-1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: intelstream-broker-1
+    hostname: broker-1
+    ports:
+      - "9292:9292"   # Broker
+      - "8080:8080"   # REST API
+      - "9090:9090"   # gRPC
+      - "8081:8081"   # Schema Registry
+      - "9191:9191"   # Prometheus metrics
+    environment:
+      RUST_LOG: info
+      INTELSTREAM_BROKER_ID: "1"
+      INTELSTREAM_HOST: "0.0.0.0"
+      INTELSTREAM_PORT: "9292"
+      INTELSTREAM_DATA_DIR: "/data"
+      INTELSTREAM_CLUSTER_PEERS: "broker-1:9292,broker-2:9292,broker-3:9292"
+    volumes:
+      - broker1-data:/data
+    networks:
+      - intelstream-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --------------------------------------------------------------------------
+  # Broker 2
+  # --------------------------------------------------------------------------
+  broker-2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: intelstream-broker-2
+    hostname: broker-2
+    ports:
+      - "9293:9292"
+      - "8082:8080"
+    environment:
+      RUST_LOG: info
+      INTELSTREAM_BROKER_ID: "2"
+      INTELSTREAM_HOST: "0.0.0.0"
+      INTELSTREAM_PORT: "9292"
+      INTELSTREAM_DATA_DIR: "/data"
+      INTELSTREAM_CLUSTER_PEERS: "broker-1:9292,broker-2:9292,broker-3:9292"
+    volumes:
+      - broker2-data:/data
+    networks:
+      - intelstream-net
+    depends_on:
+      broker-1:
+        condition: service_healthy
+
+  # --------------------------------------------------------------------------
+  # Broker 3
+  # --------------------------------------------------------------------------
+  broker-3:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: intelstream-broker-3
+    hostname: broker-3
+    ports:
+      - "9294:9292"
+      - "8083:8080"
+    environment:
+      RUST_LOG: info
+      INTELSTREAM_BROKER_ID: "3"
+      INTELSTREAM_HOST: "0.0.0.0"
+      INTELSTREAM_PORT: "9292"
+      INTELSTREAM_DATA_DIR: "/data"
+      INTELSTREAM_CLUSTER_PEERS: "broker-1:9292,broker-2:9292,broker-3:9292"
+    volumes:
+      - broker3-data:/data
+    networks:
+      - intelstream-net
+    depends_on:
+      broker-1:
+        condition: service_healthy
+
+  # --------------------------------------------------------------------------
+  # MCP Server (AI-driven operational automation)
+  # --------------------------------------------------------------------------
+  mcp:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: intelstream-mcp
+    hostname: mcp
+    ports:
+      - "8090:8090"
+    environment:
+      RUST_LOG: info
+      INTELSTREAM_MCP_ENABLED: "true"
+      INTELSTREAM_CLUSTER_PEERS: "broker-1:9292,broker-2:9292,broker-3:9292"
+    networks:
+      - intelstream-net
+    depends_on:
+      broker-1:
+        condition: service_healthy
+
+  # --------------------------------------------------------------------------
+  # Prometheus (metrics collection)
+  # --------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    container_name: intelstream-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - intelstream-net
+    depends_on:
+      - broker-1
+
+  # --------------------------------------------------------------------------
+  # Grafana (dashboards)
+  # --------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:10.3.3
+    container_name: intelstream-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - intelstream-net
+    depends_on:
+      - prometheus
+
+volumes:
+  broker1-data:
+  broker2-data:
+  broker3-data:
+  grafana-data:
+
+networks:
+  intelstream-net:
+    driver: bridge

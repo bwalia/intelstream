@@ -1,0 +1,13 @@
+apiVersion: v2
+name: intelstream
+description: IntelStream — Next-Generation Distributed Streaming Platform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - streaming
+  - messaging
+  - kafka-alternative
+  - event-driven
+maintainers:
+  - name: IntelStream Contributors

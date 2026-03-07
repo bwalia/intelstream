@@ -1,0 +1,88 @@
+# IntelStream Default Configuration
+
+[broker]
+id = 0
+host = "0.0.0.0"
+port = 9292
+data_dir = "./data"
+log_segment_size_bytes = 1_073_741_824  # 1 GiB
+max_message_size_bytes = 10_485_760     # 10 MiB
+
+[broker.replication]
+default_replication_factor = 3
+min_in_sync_replicas = 2
+replication_timeout_ms = 30_000
+
+[broker.retention]
+default_retention_hours = 168           # 7 days
+default_retention_bytes = -1            # unlimited
+log_compaction_enabled = true
+compaction_interval_ms = 300_000        # 5 minutes
+
+[broker.performance]
+num_io_threads = 4
+num_network_threads = 4
+batch_size_bytes = 65_536               # 64 KiB
+linger_ms = 5
+compression = "zstd"                    # none | lz4 | zstd
+
+[consensus]
+election_timeout_ms = 1000
+heartbeat_interval_ms = 300
+snapshot_interval = 10_000
+
+[api]
+rest_port = 8080
+grpc_port = 9090
+enable_swagger = true
+max_request_size_bytes = 52_428_800     # 50 MiB
+
+[api.cors]
+allowed_origins = ["*"]
+allowed_methods = ["GET", "POST", "PUT", "DELETE"]
+max_age_secs = 3600
+
+[auth]
+enabled = false
+provider = "jwt"                        # jwt | oauth2
+token_expiry_secs = 3600
+refresh_token_expiry_secs = 86400
+
+[auth.rbac]
+enabled = false
+default_role = "reader"
+
+[tls]
+enabled = false
+cert_file = ""
+key_file = ""
+ca_file = ""
+require_client_auth = false
+
+[schema_registry]
+enabled = true
+port = 8081
+compatibility = "backward"              # none | backward | forward | full
+
+[mcp]
+enabled = true
+port = 8090
+ai_model = "local"                      # local | openai | anthropic
+auto_scaling_enabled = false
+anomaly_detection_enabled = true
+metrics_retention_hours = 720           # 30 days
+
+[mcp.auto_scaling]
+scale_up_threshold_percent = 80
+scale_down_threshold_percent = 20
+cooldown_period_secs = 300
+
+[metrics]
+enabled = true
+prometheus_port = 9191
+export_interval_secs = 15
+
+[logging]
+level = "info"                          # trace | debug | info | warn | error
+format = "json"                         # json | pretty
+file = ""                               # empty = stdout only

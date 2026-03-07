@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "intelstream.fullname" . }}
+  labels:
+    app.kubernetes.io/name: intelstream
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  serviceName: {{ include "intelstream.fullname" . }}-headless
+  replicas: {{ .Values.replicaCount }}
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: intelstream
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: intelstream
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: intelstream
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: broker
+              containerPort: {{ .Values.broker.port }}
+            - name: rest
+              containerPort: {{ .Values.api.restPort }}
+            - name: grpc
+              containerPort: {{ .Values.api.grpcPort }}
+            - name: metrics
+              containerPort: {{ .Values.metrics.prometheusPort }}
+          env:
+            - name: INTELSTREAM_BROKER_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: INTELSTREAM_HOST
+              value: "0.0.0.0"
+            - name: INTELSTREAM_PORT
+              value: "{{ .Values.broker.port }}"
+            - name: INTELSTREAM_DATA_DIR
+              value: "{{ .Values.broker.dataDir }}"
+            - name: RUST_LOG
+              value: "info"
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.broker.dataDir }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: rest
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: rest
+            initialDelaySeconds: 30
+            periodSeconds: 30
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          {{- toYaml .Values.persistence.accessModes | nindent 10 }}
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- end }}

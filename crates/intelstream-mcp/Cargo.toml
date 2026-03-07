@@ -1,0 +1,27 @@
+[package]
+name = "intelstream-mcp"
+description = "AI-driven management control plane for IntelStream operational automation"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+intelstream-core.workspace = true
+
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+chrono.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+metrics.workspace = true
+dashmap.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+mockall.workspace = true

@@ -1,0 +1,219 @@
+syntax = "proto3";
+
+package intelstream;
+
+option java_multiple_files = true;
+option java_package = "io.intelstream.proto";
+
+// ============================================================================
+// Core Messaging Service
+// ============================================================================
+
+service IntelStream {
+  // Produce a message to a topic-partition.
+  rpc Produce(ProduceRequest) returns (ProduceResponse);
+
+  // Fetch a batch of messages from a topic-partition.
+  rpc Fetch(FetchRequest) returns (FetchResponse);
+
+  // Server-streaming consume for real-time message delivery.
+  rpc Consume(ConsumeRequest) returns (stream ConsumeResponse);
+
+  // Commit consumer group offsets.
+  rpc CommitOffset(CommitOffsetRequest) returns (CommitOffsetResponse);
+}
+
+// ============================================================================
+// Topic Management Service
+// ============================================================================
+
+service TopicService {
+  rpc CreateTopic(CreateTopicRequest) returns (CreateTopicResponse);
+  rpc DeleteTopic(DeleteTopicRequest) returns (DeleteTopicResponse);
+  rpc GetTopic(GetTopicRequest) returns (GetTopicResponse);
+  rpc ListTopics(ListTopicsRequest) returns (ListTopicsResponse);
+}
+
+// ============================================================================
+// Cluster Management Service
+// ============================================================================
+
+service ClusterService {
+  rpc GetClusterStatus(GetClusterStatusRequest) returns (GetClusterStatusResponse);
+  rpc GetBrokerInfo(GetBrokerInfoRequest) returns (GetBrokerInfoResponse);
+}
+
+// ============================================================================
+// Message Types
+// ============================================================================
+
+message MessageHeader {
+  string key = 1;
+  string value = 2;
+}
+
+message Message {
+  uint64 offset = 1;
+  bytes key = 2;
+  bytes value = 3;
+  int64 timestamp = 4;
+  repeated MessageHeader headers = 5;
+  uint32 schema_id = 6;
+}
+
+// ============================================================================
+// Produce
+// ============================================================================
+
+message ProduceRequest {
+  string topic = 1;
+  int32 partition = 2;
+  bytes key = 3;
+  bytes value = 4;
+  repeated MessageHeader headers = 5;
+  uint32 schema_id = 6;
+  // Ack level: 0 = fire-and-forget, 1 = leader-only, -1 = all ISR
+  int32 acks = 7;
+}
+
+message ProduceResponse {
+  string topic = 1;
+  int32 partition = 2;
+  uint64 offset = 3;
+  int64 timestamp = 4;
+}
+
+// ============================================================================
+// Fetch
+// ============================================================================
+
+message FetchRequest {
+  string topic = 1;
+  int32 partition = 2;
+  uint64 offset = 3;
+  int64 max_bytes = 4;
+  int32 max_messages = 5;
+}
+
+message FetchResponse {
+  string topic = 1;
+  int32 partition = 2;
+  repeated Message messages = 3;
+  uint64 high_watermark = 4;
+  uint64 log_end_offset = 5;
+}
+
+// ============================================================================
+// Consume (server-streaming)
+// ============================================================================
+
+message ConsumeRequest {
+  string topic = 1;
+  int32 partition = 2;
+  uint64 start_offset = 3;
+  string group_id = 4;
+}
+
+message ConsumeResponse {
+  Message message = 1;
+}
+
+// ============================================================================
+// Offset Management
+// ============================================================================
+
+message CommitOffsetRequest {
+  string group_id = 1;
+  string topic = 2;
+  int32 partition = 3;
+  uint64 offset = 4;
+}
+
+message CommitOffsetResponse {
+  bool success = 1;
+}
+
+// ============================================================================
+// Topic Management
+// ============================================================================
+
+message CreateTopicRequest {
+  string name = 1;
+  int32 partition_count = 2;
+  int32 replication_factor = 3;
+  int64 retention_ms = 4;
+  bool compact = 5;
+  map<string, string> config = 6;
+}
+
+message CreateTopicResponse {
+  string name = 1;
+  bool success = 2;
+}
+
+message DeleteTopicRequest {
+  string name = 1;
+}
+
+message DeleteTopicResponse {
+  bool success = 1;
+}
+
+message GetTopicRequest {
+  string name = 1;
+}
+
+message GetTopicResponse {
+  string name = 1;
+  int32 partition_count = 2;
+  int32 replication_factor = 3;
+  int64 retention_ms = 4;
+  bool compact = 5;
+  repeated PartitionInfo partitions = 6;
+}
+
+message ListTopicsRequest {}
+
+message ListTopicsResponse {
+  repeated GetTopicResponse topics = 1;
+}
+
+message PartitionInfo {
+  int32 id = 1;
+  int32 leader = 2;
+  repeated int32 replicas = 3;
+  repeated int32 isr = 4;
+  uint64 start_offset = 5;
+  uint64 end_offset = 6;
+}
+
+// ============================================================================
+// Cluster Management
+// ============================================================================
+
+message GetClusterStatusRequest {}
+
+message GetClusterStatusResponse {
+  string cluster_name = 1;
+  int32 controller_id = 2;
+  repeated BrokerInfo brokers = 3;
+  int32 total_topics = 4;
+  int32 total_partitions = 5;
+}
+
+message GetBrokerInfoRequest {
+  int32 broker_id = 1;
+}
+
+message GetBrokerInfoResponse {
+  BrokerInfo broker = 1;
+}
+
+message BrokerInfo {
+  int32 id = 1;
+  string host = 2;
+  int32 port = 3;
+  string status = 4;
+  int32 partitions_led = 5;
+  int32 partitions_followed = 6;
+}

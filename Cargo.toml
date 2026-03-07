@@ -1,0 +1,123 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/intelstream-core",
+    "crates/intelstream-server",
+    "crates/intelstream-api",
+    "crates/intelstream-client",
+    "crates/intelstream-mcp",
+    "crates/intelstream-stream",
+    "crates/intelstream-schema",
+    "crates/intelstream-connector",
+    "crates/intelstream-auth",
+    "crates/intelstream-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["IntelStream Contributors"]
+license = "Apache-2.0"
+repository = "https://github.com/intelstream/intelstream"
+rust-version = "1.75"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.36", features = ["full"] }
+tokio-util = { version = "0.7", features = ["codec"] }
+
+# Networking & HTTP
+axum = { version = "0.7", features = ["macros"] }
+tower = { version = "0.4" }
+tower-http = { version = "0.5", features = ["cors", "trace", "compression-gzip"] }
+hyper = { version = "1.1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json"] }
+
+# gRPC
+tonic = { version = "0.12" }
+tonic-build = { version = "0.12" }
+prost = { version = "0.13" }
+prost-build = { version = "0.13" }
+prost-types = { version = "0.13" }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }
+toml = { version = "0.8" }
+bytes = { version = "1.5" }
+bincode = { version = "1.3" }
+
+# Logging & Telemetry
+tracing = { version = "0.1" }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+opentelemetry = { version = "0.22" }
+opentelemetry-otlp = { version = "0.15" }
+metrics = { version = "0.22" }
+metrics-exporter-prometheus = { version = "0.13" }
+
+# Storage
+rocksdb = { version = "0.22" }
+memmap2 = { version = "0.9" }
+
+# Consensus & Distributed Systems
+raft = { version = "0.7", features = ["prost-codec"] }
+
+# Crypto & Auth
+rustls = { version = "0.23" }
+jsonwebtoken = { version = "9.3" }
+argon2 = { version = "0.5" }
+ring = { version = "0.17" }
+
+# CLI
+clap = { version = "4.5", features = ["derive", "env"] }
+colored = { version = "2.1" }
+indicatif = { version = "0.17" }
+dialoguer = { version = "0.11" }
+tabled = { version = "0.15" }
+
+# Schema
+apache-avro = { version = "0.16" }
+schemars = { version = "0.8" }
+
+# Utilities
+uuid = { version = "1.7", features = ["v4", "v7"] }
+chrono = { version = "0.4", features = ["serde"] }
+dashmap = { version = "5.5" }
+crossbeam = { version = "0.8" }
+parking_lot = { version = "0.12" }
+thiserror = { version = "1.0" }
+anyhow = { version = "1.0" }
+async-trait = { version = "0.1" }
+futures = { version = "0.3" }
+rand = { version = "0.8" }
+crc32fast = { version = "1.4" }
+lz4 = { version = "1.25" }
+zstd = { version = "0.13" }
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+
+# Testing
+criterion = { version = "0.5", features = ["async_tokio"] }
+tempfile = { version = "3.10" }
+mockall = { version = "0.12" }
+proptest = { version = "1.4" }
+
+# Internal crates
+intelstream-core = { path = "crates/intelstream-core" }
+intelstream-api = { path = "crates/intelstream-api" }
+intelstream-client = { path = "crates/intelstream-client" }
+intelstream-mcp = { path = "crates/intelstream-mcp" }
+intelstream-stream = { path = "crates/intelstream-stream" }
+intelstream-schema = { path = "crates/intelstream-schema" }
+intelstream-connector = { path = "crates/intelstream-connector" }
+intelstream-auth = { path = "crates/intelstream-auth" }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
+
+[profile.bench]
+inherits = "release"
+debug = true
