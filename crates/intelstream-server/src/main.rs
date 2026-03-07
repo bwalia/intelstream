@@ -5,6 +5,7 @@
 
 use anyhow::Result;
 use clap::Parser;
+use tokio::net::TcpListener;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
@@ -61,10 +62,13 @@ async fn main() -> Result<()> {
     let config = ServerConfig::load(&cli.config)?;
     info!(?config, "Loaded configuration");
 
+    // Resolve host override once, used by both broker and REST server
+    let listen_host = cli.host.unwrap_or_else(|| config.broker.host.clone());
+
     // Initialize the core broker
     let broker_config = intelstream_core::broker::BrokerConfig {
         id: cli.broker_id.unwrap_or(config.broker.id),
-        host: cli.host.unwrap_or(config.broker.host.clone()),
+        host: listen_host.clone(),
         port: cli.port.unwrap_or(config.broker.port),
         data_dir: cli.data_dir.unwrap_or(config.broker.data_dir.clone()),
         storage: intelstream_core::storage::StorageConfig {
@@ -85,7 +89,18 @@ async fn main() -> Result<()> {
         config.broker.port,
     );
 
-    // TODO: Start the REST API server (intelstream-api)
+    // Start the REST API server
+    let rest_addr = format!("{}:{}", listen_host, config.api.rest_port);
+    let rest_router = intelstream_api::rest::build_router();
+    let rest_listener = TcpListener::bind(&rest_addr).await?;
+    info!("REST API listening on {}", rest_addr);
+
+    tokio::spawn(async move {
+        if let Err(e) = axum::serve(rest_listener, rest_router).await {
+            tracing::error!("REST API server error: {}", e);
+        }
+    });
+
     // TODO: Start the gRPC server (intelstream-api)
     // TODO: Start the MCP server (intelstream-mcp)
     // TODO: Start the schema registry (intelstream-schema)
