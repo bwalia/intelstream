@@ -3,7 +3,10 @@
 # ============================================================================
 
 # --- Stage 1: Build ---
-FROM rust:1.75-bookworm AS builder
+FROM rust:1.83-bookworm AS builder
+
+# Install protoc for proto compilation
+RUN apt-get update && apt-get install -y --no-install-recommends protobuf-compiler && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 
@@ -36,7 +39,9 @@ RUN cargo build --release --bin intelstream 2>/dev/null || true
 # Copy full source and build
 COPY . .
 RUN cargo build --release --bin intelstream && \
-    cargo build --release --bin isctl
+    cargo build --release --bin isctl || \
+    (SKIP_PROTO_BUILD=1 cargo build --release --bin intelstream && \
+     SKIP_PROTO_BUILD=1 cargo build --release --bin isctl)
 
 # --- Stage 2: Runtime ---
 FROM debian:bookworm-slim AS runtime
