@@ -5,6 +5,8 @@
 //! The replication protocol tracks ISR (In-Sync Replicas) and manages
 //! high-watermark advancement.
 
+pub mod manager;
+
 use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;

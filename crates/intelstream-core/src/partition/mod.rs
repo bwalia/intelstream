@@ -88,6 +88,26 @@ impl Partition {
         self.high_watermark.saturating_sub(committed)
     }
 
+    /// Read messages from this partition starting at the given offset.
+    /// If `group_id` is provided and no offset is specified, reads from the committed offset.
+    pub fn read(
+        &mut self,
+        offset: Option<u64>,
+        max_messages: u32,
+        group_id: Option<&str>,
+    ) -> Result<Vec<(crate::message::MessageHeader, Message)>> {
+        let start_offset = match offset {
+            Some(o) => o,
+            None => {
+                // If a group_id is provided, start from its committed offset
+                group_id
+                    .and_then(|gid| self.committed_offset(gid))
+                    .unwrap_or(self.log.start_offset())
+            }
+        };
+        self.log.read(start_offset, max_messages)
+    }
+
     /// Flush the underlying commit log to disk.
     pub fn flush(&mut self) -> Result<()> {
         self.log.flush()

@@ -8,6 +8,8 @@
 //! - Cluster membership changes
 //! - Metadata replication (topic configs, partition assignments)
 
+pub mod transport;
+
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
@@ -15,6 +17,7 @@ use tracing::{debug, info};
 
 use crate::broker::BrokerId;
 use crate::error::{IntelStreamError, Result};
+use transport::{AppendEntriesRequest, AppendEntriesResponse, VoteRequest, VoteResponse};
 
 /// Configuration for the consensus protocol.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -226,6 +229,115 @@ impl RaftNode {
     pub fn is_leader(&self) -> bool {
         self.state == NodeState::Leader
     }
+
+    /// Handle an incoming RequestVote RPC from a candidate.
+    pub fn handle_vote_request(&mut self, req: VoteRequest) -> VoteResponse {
+        // If request term is stale, reject
+        if req.term < self.persistent.current_term {
+            return VoteResponse {
+                term: self.persistent.current_term,
+                vote_granted: false,
+            };
+        }
+
+        // Step down if we see a higher term
+        if req.term > self.persistent.current_term {
+            self.become_follower(req.term);
+        }
+
+        // Grant vote if we haven't voted yet (or already voted for this candidate)
+        // and the candidate's log is at least as up-to-date as ours
+        let can_vote = self.persistent.voted_for.is_none()
+            || self.persistent.voted_for == Some(req.candidate_id);
+
+        let our_last_term = self.persistent.log.last().map(|e| e.term).unwrap_or(0);
+        let our_last_index = self.persistent.log.len() as u64;
+
+        let log_ok = req.last_log_term > our_last_term
+            || (req.last_log_term == our_last_term && req.last_log_index >= our_last_index);
+
+        let vote_granted = can_vote && log_ok;
+        if vote_granted {
+            self.persistent.voted_for = Some(req.candidate_id);
+            debug!(
+                "Node {} granted vote to {} for term {}",
+                self.id, req.candidate_id, req.term
+            );
+        }
+
+        VoteResponse {
+            term: self.persistent.current_term,
+            vote_granted,
+        }
+    }
+
+    /// Handle an incoming AppendEntries RPC from the leader.
+    pub fn handle_append_entries(&mut self, req: AppendEntriesRequest) -> AppendEntriesResponse {
+        // Reject stale term
+        if req.term < self.persistent.current_term {
+            return AppendEntriesResponse {
+                term: self.persistent.current_term,
+                success: false,
+                match_index: self.persistent.log.len() as u64,
+            };
+        }
+
+        // Step down if we see a higher or equal term from a leader
+        if req.term >= self.persistent.current_term {
+            self.become_follower(req.term);
+        }
+
+        // Check log consistency at prev_log_index
+        if req.prev_log_index > 0 {
+            let prev_idx = req.prev_log_index as usize;
+            if prev_idx > self.persistent.log.len() {
+                return AppendEntriesResponse {
+                    term: self.persistent.current_term,
+                    success: false,
+                    match_index: self.persistent.log.len() as u64,
+                };
+            }
+            if prev_idx > 0 {
+                let entry = &self.persistent.log[prev_idx - 1];
+                if entry.term != req.prev_log_term {
+                    // Conflict: truncate from this point
+                    self.persistent.log.truncate(prev_idx - 1);
+                    return AppendEntriesResponse {
+                        term: self.persistent.current_term,
+                        success: false,
+                        match_index: self.persistent.log.len() as u64,
+                    };
+                }
+            }
+        }
+
+        // Append new entries (skip already-present ones)
+        for entry in &req.entries {
+            let idx = entry.index as usize;
+            if idx > self.persistent.log.len() {
+                self.persistent.log.push(entry.clone());
+            } else if idx > 0 && self.persistent.log[idx - 1].term != entry.term {
+                self.persistent.log.truncate(idx - 1);
+                self.persistent.log.push(entry.clone());
+            }
+        }
+
+        // Advance commit index
+        if req.leader_commit > self.commit_index {
+            self.commit_index = req.leader_commit.min(self.persistent.log.len() as u64);
+        }
+
+        AppendEntriesResponse {
+            term: self.persistent.current_term,
+            success: true,
+            match_index: self.persistent.log.len() as u64,
+        }
+    }
+
+    /// Get the list of peer broker IDs.
+    pub fn peers(&self) -> &[BrokerId] {
+        &self.peers
+    }
 }
 
 #[cfg(test)]
@@ -285,5 +397,131 @@ mod tests {
         node.become_follower(5);
         assert_eq!(node.state(), NodeState::Follower);
         assert_eq!(node.current_term(), 5);
+    }
+
+    #[test]
+    fn test_handle_vote_request_grants_vote() {
+        let mut node = RaftNode::new(1, vec![2, 3], ConsensusConfig::default());
+
+        let req = VoteRequest {
+            term: 1,
+            candidate_id: 2,
+            last_log_index: 0,
+            last_log_term: 0,
+        };
+        let resp = node.handle_vote_request(req);
+        assert!(resp.vote_granted);
+        assert_eq!(resp.term, 1);
+    }
+
+    #[test]
+    fn test_handle_vote_request_rejects_stale_term() {
+        let mut node = RaftNode::new(1, vec![2, 3], ConsensusConfig::default());
+        node.start_election(); // term = 1
+
+        let req = VoteRequest {
+            term: 0,
+            candidate_id: 2,
+            last_log_index: 0,
+            last_log_term: 0,
+        };
+        let resp = node.handle_vote_request(req);
+        assert!(!resp.vote_granted);
+    }
+
+    #[test]
+    fn test_handle_vote_request_rejects_double_vote() {
+        let mut node = RaftNode::new(1, vec![2, 3], ConsensusConfig::default());
+
+        // Vote for candidate 2
+        let req = VoteRequest {
+            term: 1,
+            candidate_id: 2,
+            last_log_index: 0,
+            last_log_term: 0,
+        };
+        let resp = node.handle_vote_request(req);
+        assert!(resp.vote_granted);
+
+        // Reject candidate 3 in the same term
+        let req2 = VoteRequest {
+            term: 1,
+            candidate_id: 3,
+            last_log_index: 0,
+            last_log_term: 0,
+        };
+        let resp2 = node.handle_vote_request(req2);
+        assert!(!resp2.vote_granted);
+    }
+
+    #[test]
+    fn test_handle_append_entries_heartbeat() {
+        let mut node = RaftNode::new(1, vec![2, 3], ConsensusConfig::default());
+
+        let req = AppendEntriesRequest {
+            term: 1,
+            leader_id: 2,
+            prev_log_index: 0,
+            prev_log_term: 0,
+            entries: vec![],
+            leader_commit: 0,
+        };
+        let resp = node.handle_append_entries(req);
+        assert!(resp.success);
+        assert_eq!(node.state(), NodeState::Follower);
+        assert_eq!(node.current_term(), 1);
+    }
+
+    #[test]
+    fn test_handle_append_entries_with_entries() {
+        let mut node = RaftNode::new(1, vec![2, 3], ConsensusConfig::default());
+
+        let entries = vec![
+            RaftLogEntry {
+                term: 1,
+                index: 1,
+                command: ClusterCommand::Noop,
+            },
+            RaftLogEntry {
+                term: 1,
+                index: 2,
+                command: ClusterCommand::CreateTopic {
+                    name: "test".to_string(),
+                    partition_count: 3,
+                    replication_factor: 2,
+                },
+            },
+        ];
+
+        let req = AppendEntriesRequest {
+            term: 1,
+            leader_id: 2,
+            prev_log_index: 0,
+            prev_log_term: 0,
+            entries,
+            leader_commit: 1,
+        };
+        let resp = node.handle_append_entries(req);
+        assert!(resp.success);
+        assert_eq!(resp.match_index, 2);
+        assert_eq!(node.log_length(), 2);
+        assert_eq!(node.commit_index(), 1);
+    }
+
+    #[test]
+    fn test_handle_append_entries_rejects_stale() {
+        let mut node = RaftNode::new(1, vec![2, 3], ConsensusConfig::default());
+        node.start_election(); // term = 1
+
+        let req = AppendEntriesRequest {
+            term: 0,
+            leader_id: 2,
+            prev_log_index: 0,
+            prev_log_term: 0,
+            entries: vec![],
+            leader_commit: 0,
+        };
+        let resp = node.handle_append_entries(req);
+        assert!(!resp.success);
     }
 }

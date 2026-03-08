@@ -178,12 +178,21 @@ pub struct AuthSection {
     pub rbac: RbacSection,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RbacSection {
     #[serde(default)]
     pub enabled: bool,
     #[serde(default = "default_role")]
     pub default_role: String,
+}
+
+impl Default for RbacSection {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            default_role: default_role(),
+        }
+    }
 }
 
 fn default_auth_provider() -> String {

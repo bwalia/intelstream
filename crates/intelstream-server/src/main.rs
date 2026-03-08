@@ -3,6 +3,8 @@
 //! Main entry point for the IntelStream distributed streaming platform.
 //! Boots the broker, API server, MCP automation server, and schema registry.
 
+use std::sync::Arc;
+
 use anyhow::Result;
 use clap::Parser;
 use tokio::net::TcpListener;
@@ -79,7 +81,7 @@ async fn main() -> Result<()> {
         },
     };
 
-    let broker = intelstream_core::broker::Broker::new(broker_config)?;
+    let broker = Arc::new(intelstream_core::broker::Broker::new(broker_config)?);
     broker.start().await?;
 
     info!(
@@ -89,9 +91,12 @@ async fn main() -> Result<()> {
         config.broker.port,
     );
 
+    // Build shared application state
+    let app_state = Arc::new(intelstream_api::AppState::new(broker.clone()));
+
     // Start the REST API server
     let rest_addr = format!("{}:{}", listen_host, config.api.rest_port);
-    let rest_router = intelstream_api::rest::build_router();
+    let rest_router = intelstream_api::rest::build_router(app_state);
     let rest_listener = TcpListener::bind(&rest_addr).await?;
     info!("REST API listening on {}", rest_addr);
 
@@ -101,7 +106,30 @@ async fn main() -> Result<()> {
         }
     });
 
-    // TODO: Start the gRPC server (intelstream-api)
+    // Start the gRPC server
+    let grpc_addr = format!("{}:{}", listen_host, config.api.grpc_port);
+    let grpc_app_state = Arc::new(intelstream_api::AppState::new(broker.clone()));
+    let grpc_addr_parsed: std::net::SocketAddr = grpc_addr.parse()?;
+    info!("gRPC API listening on {}", grpc_addr);
+
+    tokio::spawn(async move {
+        if let Err(e) = tonic::transport::Server::builder()
+            .add_service(intelstream_api::grpc::IntelStreamServer::new(
+                intelstream_api::grpc::service::IntelStreamGrpcService::new(grpc_app_state.clone()),
+            ))
+            .add_service(intelstream_api::grpc::TopicServiceServer::new(
+                intelstream_api::grpc::service::TopicGrpcService::new(grpc_app_state.clone()),
+            ))
+            .add_service(intelstream_api::grpc::ClusterServiceServer::new(
+                intelstream_api::grpc::service::ClusterGrpcService::new(grpc_app_state),
+            ))
+            .serve(grpc_addr_parsed)
+            .await
+        {
+            tracing::error!("gRPC server error: {}", e);
+        }
+    });
+
     // TODO: Start the MCP server (intelstream-mcp)
     // TODO: Start the schema registry (intelstream-schema)
     // TODO: Initialize consensus and join cluster

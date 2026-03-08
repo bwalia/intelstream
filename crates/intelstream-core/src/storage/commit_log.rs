@@ -106,6 +106,57 @@ impl CommitLog {
         Ok(())
     }
 
+    /// Read up to `max_messages` starting from the given offset across segments.
+    pub fn read(
+        &mut self,
+        offset: u64,
+        max_messages: u32,
+    ) -> Result<Vec<(crate::message::MessageHeader, Message)>> {
+        // Validate offset range
+        if offset >= self.end_offset() {
+            return Ok(vec![]);
+        }
+        if offset < self.start_offset() {
+            return Err(IntelStreamError::OffsetOutOfRange {
+                requested: offset,
+                range_start: self.start_offset(),
+                range_end: self.end_offset(),
+            });
+        }
+
+        // Flush the active segment so reads see all data
+        self.active_segment_mut().flush()?;
+
+        let mut results = Vec::new();
+        let mut remaining = max_messages;
+        let mut current_offset = offset;
+
+        for segment in &self.segments {
+            if remaining == 0 {
+                break;
+            }
+            // Skip segments that don't contain the current offset
+            if segment.next_offset() <= current_offset {
+                continue;
+            }
+            if segment.base_offset() > current_offset + remaining as u64 {
+                break;
+            }
+
+            let records = segment.read_range(current_offset, remaining)?;
+            for record in records {
+                current_offset = record.0.offset + 1;
+                results.push(record);
+                remaining -= 1;
+                if remaining == 0 {
+                    break;
+                }
+            }
+        }
+
+        Ok(results)
+    }
+
     /// Apply retention policy, deleting eligible old segments.
     pub fn enforce_retention(&mut self) -> Result<usize> {
         let mut deleted = 0;
@@ -207,5 +258,54 @@ mod tests {
             Bytes::from("this message is way too large for the limit"),
         );
         assert!(log.append(&msg).is_err());
+    }
+
+    #[test]
+    fn test_commit_log_read() {
+        let tmp = TempDir::new().unwrap();
+        let mut log =
+            CommitLog::open(tmp.path(), test_config(), RetentionPolicy::default()).unwrap();
+
+        for i in 0..5 {
+            let msg = Message::new(None, Bytes::from(format!("msg-{}", i)));
+            log.append(&msg).unwrap();
+        }
+
+        let records = log.read(0, 10).unwrap();
+        assert_eq!(records.len(), 5);
+        assert_eq!(records[0].0.offset, 0);
+        assert_eq!(records[4].0.offset, 4);
+    }
+
+    #[test]
+    fn test_commit_log_read_partial() {
+        let tmp = TempDir::new().unwrap();
+        let mut log =
+            CommitLog::open(tmp.path(), test_config(), RetentionPolicy::default()).unwrap();
+
+        for i in 0..10 {
+            let msg = Message::new(None, Bytes::from(format!("msg-{}", i)));
+            log.append(&msg).unwrap();
+        }
+
+        // Read only 3 messages starting at offset 5
+        let records = log.read(5, 3).unwrap();
+        assert_eq!(records.len(), 3);
+        assert_eq!(records[0].0.offset, 5);
+        assert_eq!(records[2].0.offset, 7);
+    }
+
+    #[test]
+    fn test_commit_log_read_beyond_end() {
+        let tmp = TempDir::new().unwrap();
+        let mut log =
+            CommitLog::open(tmp.path(), test_config(), RetentionPolicy::default()).unwrap();
+
+        let msg = Message::new(None, Bytes::from("only-one"));
+        log.append(&msg).unwrap();
+
+        // Reading beyond the end returns empty
+        let records = log.read(100, 10);
+        assert!(records.unwrap().is_empty());
     }
 }

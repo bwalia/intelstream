@@ -19,6 +19,7 @@ intelstream-mcp.workspace = true
 intelstream-schema.workspace = true
 
 axum.workspace = true
+tonic.workspace = true
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true

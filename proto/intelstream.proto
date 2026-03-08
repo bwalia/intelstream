@@ -217,3 +217,28 @@ message BrokerInfo {
   int32 partitions_led = 5;
   int32 partitions_followed = 6;
 }
+
+// ============================================================================
+// Replication Service (inter-broker)
+// ============================================================================
+
+service ReplicationService {
+  // Follower fetches log entries from the leader.
+  rpc ReplicaFetch(ReplicaFetchRequest) returns (ReplicaFetchResponse);
+}
+
+message ReplicaFetchRequest {
+  int32 follower_id = 1;
+  string topic = 2;
+  int32 partition_id = 3;
+  uint64 fetch_offset = 4;
+  int64 max_bytes = 5;
+}
+
+message ReplicaFetchResponse {
+  string topic = 1;
+  int32 partition_id = 2;
+  uint64 leader_end_offset = 3;
+  uint64 high_watermark = 4;
+  bytes records = 5;
+}

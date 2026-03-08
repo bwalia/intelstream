@@ -6,7 +6,28 @@
 pub mod grpc;
 pub mod rest;
 
+use std::sync::Arc;
+use std::time::Instant;
+
+use intelstream_core::broker::Broker;
 use serde::{Deserialize, Serialize};
+
+/// Shared application state passed to all API handlers.
+pub struct AppState {
+    /// The core broker instance.
+    pub broker: Arc<Broker>,
+    /// When the server started (for uptime calculation).
+    pub started_at: Instant,
+}
+
+impl AppState {
+    pub fn new(broker: Arc<Broker>) -> Self {
+        Self {
+            broker,
+            started_at: Instant::now(),
+        }
+    }
+}
 
 /// Common API response wrapper.
 #[derive(Debug, Serialize, Deserialize)]

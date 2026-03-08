@@ -5,12 +5,16 @@
 pub mod handlers;
 pub mod models;
 
+use std::sync::Arc;
+
 use axum::{
     routing::{delete, get, post},
     Router,
 };
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
+
+use crate::AppState;
 
 /// OpenAPI documentation for the IntelStream REST API.
 #[derive(OpenApi)]
@@ -46,8 +50,8 @@ use utoipa_swagger_ui::SwaggerUi;
 )]
 pub struct ApiDoc;
 
-/// Build the REST API router with all routes.
-pub fn build_router() -> Router {
+/// Build the REST API router with all routes, wired to the shared application state.
+pub fn build_router(state: Arc<AppState>) -> Router {
     let api_routes = Router::new()
         // Health
         .route("/health", get(handlers::health_check))
@@ -66,7 +70,8 @@ pub fn build_router() -> Router {
             get(handlers::consume_messages),
         )
         // Cluster
-        .route("/cluster/status", get(handlers::get_cluster_status));
+        .route("/cluster/status", get(handlers::get_cluster_status))
+        .with_state(state);
 
     Router::new()
         .nest("/api/v1", api_routes)
